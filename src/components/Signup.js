@@ -1,8 +1,11 @@
 import { Button, FloatingLabel, Form } from "react-bootstrap";
 import './Signup.css';
 import { useRef } from "react";
+import {useHistory} from "react-router-dom"
 
 const Signup = props => {
+  const history = useHistory();
+  
   const emailRef = useRef("");
   const passwordRef = useRef("");
   const confirmPasswordRef = useRef("");
@@ -43,7 +46,7 @@ const Signup = props => {
   }
 
   const clickHandler = () => {
-    props.loginUser();
+    history.replace("/login");
   }
 
   return <Form className="signup" onSubmit={submitHandler}>
