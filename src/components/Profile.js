@@ -1,6 +1,6 @@
 import { Button, FloatingLabel, Form } from "react-bootstrap";
 import './Profile.css';
-import { useContext, useRef } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { tokenContext } from "../store/Context";
 
 const Profile = props => {
@@ -8,6 +8,41 @@ const Profile = props => {
 
     const nameRef = useRef("");
     const urlRef = useRef("");
+
+    useEffect(() => {
+      fetch('https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=AIzaSyCtaqLuy8ActSmPWkPlYfnAB8plN4sO2lM', {
+        method: 'POST',
+        body: JSON.stringify({idToken: ctx.token})
+      })
+      .then(res => {
+        if (res.ok) {
+          return res.json();
+        }
+        return res.json().then(data => {
+          let errorMessage = 'Authentication Failed!';
+          if (data && data.error && data.error.message) {
+            errorMessage = data.error.message;
+          }
+          throw new Error(errorMessage);
+        })
+      })
+      .then(data => {
+        if(data.users){
+          let userData = data.users[0];
+          if(userData.displayName){
+            nameRef.current.value = userData.displayName; 
+          }
+          if(userData.photoUrl){
+            urlRef.current.value = userData.photoUrl;
+          }
+        }else{
+          console.log("user not found");
+        }
+      })
+      .catch(err => {
+        alert(err.message);
+      })
+    },[])
 
     const submitHandler = e => {
         e.preventDefault();
