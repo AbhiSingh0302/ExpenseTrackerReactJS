@@ -6,10 +6,11 @@ import Login from './components/Login';
 import { Route, useHistory, Redirect } from 'react-router-dom/cjs/react-router-dom';
 import Profile from './components/Profile';
 import { tokenContext } from './store/Context';
+import ExpensePage from './components/ExpensePage';
 
 function App() {
   const history = useHistory();
-
+  
   const ctx = useContext(tokenContext);
 
   useEffect(() => {
@@ -32,11 +33,15 @@ function App() {
       </Route>
       <Route path="/login">
         {!ctx.isLoggedIn && <Login onLogin={loginHandler} />}
-        {ctx.isLoggedIn && <h1>Welcome to expense tracker</h1>}
+        {ctx.isLoggedIn && <Redirect to="/expense"/>}
       </Route>
       <Route path="/profile">
         {ctx.isLoggedIn && <Profile />}
         {!ctx.isLoggedIn && <Redirect to="/login"/>}
+      </Route>
+      <Route path="/expense">
+      {ctx.isLoggedIn && <ExpensePage />}
+      {!ctx.isLoggedIn && <Redirect to="/login"/>}
       </Route>
     </>
   );
