@@ -3,7 +3,8 @@ import { createContext, useState } from "react";
 const tokenContext = createContext({
     token: "",
     isLoggedIn: false,
-    updateLogIn: () => {}
+    updateLogIn: () => {},
+    logout: () => {}
 })
 
 const TokenContextProvider = props => {
@@ -15,8 +16,16 @@ const TokenContextProvider = props => {
         setIsLoggedIn(true);
     }
 
+    const logout = () => {
+        setToken("");
+        setIsLoggedIn(false);
+        if(localStorage.getItem("auth-token")){
+            localStorage.removeItem("auth-token");
+        }
+    }
+
     const contextValue = {
-        token, isLoggedIn, updateLogIn
+        token, isLoggedIn, updateLogIn, logout
     }
 
     return <tokenContext.Provider value={contextValue}>
