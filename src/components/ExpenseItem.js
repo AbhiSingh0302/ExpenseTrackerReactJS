@@ -1,5 +1,5 @@
 const ExpenseItem = props => {
-    return <tr key={props.id}>
+    return <tr>
     <td>{props.amount}</td>
     <td>{props.item}</td>
     <td>{props.category}</td>
