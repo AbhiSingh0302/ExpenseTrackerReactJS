@@ -6,6 +6,8 @@ import ExpenseItem from "./ExpenseItem";
 const ExpensePage = props => {
   const [expenses, setExpenses] = useState([]);
   const [loader, setLoader] = useState(false);
+  const [isEditable, setIsEditable] = useState(false);
+  const [editItemId, setEditItemId] = useState(null);
 
   const ctx = useContext(tokenContext);
 
@@ -33,7 +35,7 @@ const ExpensePage = props => {
       const expensesArray = [];
       for(let d in data){
         // console.log(data[d]);
-        expensesArray.push(data[d]);
+        expensesArray.push({...data[d], id: d});
       }
       // console.log(expensesArray);
       setExpenses(pre => [...pre, ...expensesArray]);
@@ -72,9 +74,51 @@ const ExpensePage = props => {
       })
   }
 
+  const editExpense = async () => {
+    // editting the expense
+    try {  
+      const res = await fetch(`https://ecommerce-project-d4a80-default-rtdb.firebaseio.com/expenses/${editItemId}.json`,{
+        method: 'PUT',
+        body: JSON.stringify({amount: amountRef.current.value,
+          item: itemRef.current.value,
+          category: categoryRef.current.value,
+          id: Math.random()})
+      });
+      const response = await res.json();
+      console.log(response);
+      if (response && response.error && response.error.message) {
+        let errorMessage = response.error.message;
+        throw new Error(errorMessage);
+      }else{
+       setExpenses(pre => [...pre,
+        {amount: response.amount,
+        item: response.item,
+        category: response.category,
+        id: editItemId}
+      ])
+      amountRef.current.value="";
+      itemRef.current.value="";
+      categoryRef.current.value="";
+
+      setLoader(false);
+      setIsEditable(false);
+      setEditItemId(null);
+      }
+    } catch (error) {
+      alert(error.message);
+      setLoader(false);
+    }
+  }
+
   const submitHandler = e => {
     setLoader(true);
     e.preventDefault();
+
+    if(isEditable){
+      editExpense();
+    }
+    else
+    {
     fetch('https://ecommerce-project-d4a80-default-rtdb.firebaseio.com/expenses.json',{
       method: 'POST',
       body: JSON.stringify({amount: amountRef.current.value,
@@ -95,20 +139,56 @@ const ExpensePage = props => {
       })
     })
     .then(data => {
-      console.log(data);
+      console.log(data.name);
       setExpenses(pre => [...pre,
         {amount: amountRef.current.value,
         item: itemRef.current.value,
         category: categoryRef.current.value,
-        id: Math.random()}
+        id: data.name}
       ])
+      amountRef.current.value="";
+      itemRef.current.value="";
+      categoryRef.current.value="";
+
       setLoader(false);
     })
     .catch(err => {
       alert(err.message);
       setLoader(false);
     })
+  }
+  }
 
+  const editHandler = e => {
+    setEditItemId(e.target.parentElement.parentElement.id);
+    const item = expenses.find(ele => ele.id === e.target.parentElement.parentElement.id)
+    amountRef.current.value = item.amount;
+    itemRef.current.value = item.item;
+    categoryRef.current.value = item.category;
+    // e.target.parentElement.parentElement.remove();
+    setExpenses(pre => pre.filter(ele => ele.id !== e.target.parentElement.parentElement.id))
+    setIsEditable(true);
+  }
+
+  const deleteHandler = async e => {
+    try { 
+      const itemId = e.target.parentElement.parentElement.id
+      const res = await fetch(`https://ecommerce-project-d4a80-default-rtdb.firebaseio.com/expenses/${itemId}.json`,{
+        method: 'DELETE'
+      });
+      const response = await res.json();
+      console.log(response);
+      if (response && response.error && response.error.message) {
+        let errorMessage = response.error.message;
+        throw new Error(errorMessage);
+      }else{
+        setExpenses(pre => pre.filter(ele => ele.id !== itemId))
+        setLoader(false);
+      }
+    } catch (error) {
+      alert(error.message);
+      setLoader(false);
+    }
   }
 
   return <Container className="w-75">
@@ -135,7 +215,7 @@ const ExpensePage = props => {
             label="Expense Category"
           >
             <Form.Select aria-label="Floating label select example" ref={categoryRef}>
-              <option>Select Category</option>
+              <option value="">Select Category</option>
               <option value="food">Food</option>
               <option value="fuel">Fuel</option>
               <option value="shopping">Shopping</option>
@@ -144,7 +224,7 @@ const ExpensePage = props => {
           </FloatingLabel>
         </Col>
         <Col style={{ alignSelf: "center" }}>
-          <Button type="submit" variant="warning">Add expense</Button>
+          <Button type="submit" variant="warning">{isEditable ? 'Update Expense' : 'Add Expense'}</Button>
           {loader && <Spinner animation="border" variant="warning" style={{position: "relative", top: "7px", left: "5px"}}/>}
         </Col>
       </Row>
@@ -155,12 +235,19 @@ const ExpensePage = props => {
         <tr>
           <th>Amount</th>
           <th>Item</th>
-          <th>Category</th>
+          <th colSpan={2}>Category</th>
         </tr>
       </thead>
       <tbody>
         {expenses.map(expense => (
-          <ExpenseItem key={expense.id} amount={expense.amount} item={expense.item} category={expense.category}/>
+          <ExpenseItem
+          key={expense.id} 
+          id={expense.id} 
+          amount={expense.amount} 
+          item={expense.item} 
+          category={expense.category}
+          onEdit={editHandler}
+          onDelete={deleteHandler}/>
         ))}
       </tbody>
     </Table>
