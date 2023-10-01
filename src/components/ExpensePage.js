@@ -1,15 +1,19 @@
-import { useContext, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button, Container, Form, Row, Col, FloatingLabel, Table, Spinner } from "react-bootstrap"
-import { tokenContext } from "../store/Context";
 import ExpenseItem from "./ExpenseItem";
+import { useDispatch, useSelector } from "react-redux";
+import { expenseActions } from "../store/expense";
 
 const ExpensePage = props => {
+  const expensesState = useSelector(state => state.expense.expenses);
   const [expenses, setExpenses] = useState([]);
+  const dispatch = useDispatch();
   const [loader, setLoader] = useState(false);
   const [isEditable, setIsEditable] = useState(false);
   const [editItemId, setEditItemId] = useState(null);
+  const [amount, setAmount] = useState(0);
 
-  const ctx = useContext(tokenContext);
+  const token = useSelector(state => state.auth.isLoggedIn);
 
   const amountRef = useRef("");
   const itemRef = useRef("");
@@ -34,11 +38,14 @@ const ExpensePage = props => {
       // console.log(data);
       const expensesArray = [];
       for(let d in data){
-        // console.log(data[d]);
+        console.log(data[d]);
+        setAmount(pre => Number(pre) + Number(data[d].amount))
         expensesArray.push({...data[d], id: d});
       }
       // console.log(expensesArray);
       setExpenses(pre => [...pre, ...expensesArray]);
+      dispatch(expenseActions.addExpenses(expensesArray))
+      console.log(expensesState); 
     })
     .catch(err => {
       alert(err.message);
@@ -51,7 +58,7 @@ const ExpensePage = props => {
       method: 'POST',
       body: JSON.stringify({
         requestType: 'VERIFY_EMAIL',
-        idToken: ctx.token
+        idToken: token
       })
     })
       .then(res => {
@@ -146,6 +153,8 @@ const ExpensePage = props => {
         category: categoryRef.current.value,
         id: data.name}
       ])
+      setAmount(pre => Number(pre) + Number(amountRef.current.value))
+      console.log(amount);
       amountRef.current.value="";
       itemRef.current.value="";
       categoryRef.current.value="";
@@ -182,6 +191,8 @@ const ExpensePage = props => {
         let errorMessage = response.error.message;
         throw new Error(errorMessage);
       }else{
+        const deleteAmount = expenses.find(ele => ele.id === itemId).amount;
+        setAmount(pre => Number(pre) - Number(deleteAmount));
         setExpenses(pre => pre.filter(ele => ele.id !== itemId))
         setLoader(false);
       }
@@ -196,7 +207,9 @@ const ExpensePage = props => {
     <div className="text-center">
       <Button onClick={clickHandler}>Verify Email</Button>
     </div>
-
+    {amount > 10000 && <div className="text-center">
+      <Button onClick={clickHandler}>Premium</Button>
+    </div>}
     <Form className="mt-3 bg-primary p-3" onSubmit={submitHandler}>
       <Row className="g-2">
         <Col md>

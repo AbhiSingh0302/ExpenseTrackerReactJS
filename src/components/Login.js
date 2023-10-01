@@ -2,9 +2,12 @@ import { Button, FloatingLabel, Form, Spinner } from "react-bootstrap";
 import './Login.css';
 import { useRef, useState } from "react";
 import { useHistory } from "react-router-dom"
+import { useDispatch } from "react-redux";
+import { authActions } from "../store/auth";
 
 const Login = props => {
   const history = useHistory();
+  const dispatch = useDispatch();
 
   const emailRef = useRef("");
   const passwordRef = useRef("");
@@ -35,7 +38,8 @@ const Login = props => {
       })
       .then(data => {
         console.log(data.idToken);
-        props.onLogin(data.idToken);
+        // props.onLogin(data.idToken);
+        dispatch(authActions.updateLogIn(data.idToken));
       })
       .catch(err => {
         alert(err.message);

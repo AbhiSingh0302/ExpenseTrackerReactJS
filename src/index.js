@@ -3,13 +3,14 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { BrowserRouter } from 'react-router-dom/cjs/react-router-dom.min';
-import { TokenContextProvider } from './store/Context';
+import { Provider } from 'react-redux';
+import store from './store';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-    <TokenContextProvider>
+    <Provider store={store}>
     <BrowserRouter>
         <App />
     </BrowserRouter>
-    </TokenContextProvider>
+    </Provider>
 );

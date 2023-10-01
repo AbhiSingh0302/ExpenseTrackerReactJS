@@ -1,25 +1,26 @@
 import { Link, useHistory } from 'react-router-dom/cjs/react-router-dom.min';
 import './Header.css';
 import { Button } from 'react-bootstrap';
-import { useContext } from 'react';
-import { tokenContext } from '../store/Context';
+import { useDispatch, useSelector } from 'react-redux';
+import { authActions } from '../store/auth';
 
 const Header = props => {
-    const ctx = useContext(tokenContext);
+    const isLoggedIn = useSelector(state => state.auth.isLoggedIn);
+    const dispatch = useDispatch();
 
-    const history = useHistory("/expense");
+    const history = useHistory();
 
     const clickHandler = () => {
         history.replace("/expense");
     }
 
     const logoutHandler = () => {
-        ctx.logout();
+        dispatch(authActions.logout());
     }
 
     return <header className='main-header d-flex justify-content-between px-4'>
         <h1 className='text-center py-3 logo' onClick={clickHandler}>Expense Tracker</h1>
-        {ctx.isLoggedIn && <div>
+        {isLoggedIn && <div>
         <p className='text-center py-3 me-3 d-inline-block'>Your profile is incomplete<Link to="/profile" style={{textDecoration: "underline", color: "white"}}>Complete now</Link></p>
         <Button size='md' variant='danger' onClick={logoutHandler}>Logout</Button>
         </div>}

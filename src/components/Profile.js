@@ -1,10 +1,10 @@
 import { Button, FloatingLabel, Form } from "react-bootstrap";
 import './Profile.css';
-import { useContext, useEffect, useRef } from "react";
-import { tokenContext } from "../store/Context";
+import { useEffect, useRef } from "react";
+import { useSelector } from "react-redux";
 
 const Profile = props => {
-    const ctx = useContext(tokenContext);
+    const token = useSelector(state => state.auth.token);
 
     const nameRef = useRef("");
     const urlRef = useRef("");
@@ -12,7 +12,7 @@ const Profile = props => {
     useEffect(() => {
       fetch('https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=AIzaSyCtaqLuy8ActSmPWkPlYfnAB8plN4sO2lM', {
         method: 'POST',
-        body: JSON.stringify({idToken: ctx.token})
+        body: JSON.stringify({idToken: token})
       })
       .then(res => {
         if (res.ok) {
@@ -50,7 +50,7 @@ const Profile = props => {
         fetch(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=AIzaSyCtaqLuy8ActSmPWkPlYfnAB8plN4sO2lM`, {
         method: 'POST',
         body: JSON.stringify({
-          idToken: ctx.token,
+          idToken: token,
           displayName: nameRef.current.value,
           photoUrl: urlRef.current.value,
           returnSecureToken: true
