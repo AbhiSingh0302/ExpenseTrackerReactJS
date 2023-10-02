@@ -1,17 +1,19 @@
-import { useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import { Button, Container, Form, Row, Col, FloatingLabel, Table, Spinner } from "react-bootstrap"
 import ExpenseItem from "./ExpenseItem";
 import { useDispatch, useSelector } from "react-redux";
 import { expenseActions } from "../store/expense";
+import { themeActions } from "../store/theme";
 
 const ExpensePage = props => {
-  const expensesState = useSelector(state => state.expense.expenses);
-  const [expenses, setExpenses] = useState([]);
+  const expenses = useSelector(state => state.expense.expenses);
+  const totalAmount = useSelector(state => state.expense.total);
+  const darkMode = useSelector(state => state.theme.darkMode);
+
   const dispatch = useDispatch();
   const [loader, setLoader] = useState(false);
   const [isEditable, setIsEditable] = useState(false);
   const [editItemId, setEditItemId] = useState(null);
-  const [amount, setAmount] = useState(0);
 
   const token = useSelector(state => state.auth.isLoggedIn);
 
@@ -19,38 +21,7 @@ const ExpensePage = props => {
   const itemRef = useRef("");
   const categoryRef = useRef("");
 
-  useEffect(() => {
-    // GET all the expenses at once when the page reloads
-    fetch('https://ecommerce-project-d4a80-default-rtdb.firebaseio.com/expenses.json')
-    .then(res => {
-      if (res.ok) {
-        return res.json();
-      }
-      return res.json().then(data => {
-        let errorMessage = 'Authentication Failed!';
-        if (data && data.error && data.error.message) {
-          errorMessage = data.error.message;
-        }
-        throw new Error(errorMessage);
-      })
-    })
-    .then(data => {
-      // console.log(data);
-      const expensesArray = [];
-      for(let d in data){
-        console.log(data[d]);
-        setAmount(pre => Number(pre) + Number(data[d].amount))
-        expensesArray.push({...data[d], id: d});
-      }
-      // console.log(expensesArray);
-      setExpenses(pre => [...pre, ...expensesArray]);
-      dispatch(expenseActions.addExpenses(expensesArray))
-      console.log(expensesState); 
-    })
-    .catch(err => {
-      alert(err.message);
-    })
-  },[])
+  
 
   const clickHandler = () => {
     // Email Verification
@@ -82,14 +53,13 @@ const ExpensePage = props => {
   }
 
   const editExpense = async () => {
-    // editting the expense
     try {  
       const res = await fetch(`https://ecommerce-project-d4a80-default-rtdb.firebaseio.com/expenses/${editItemId}.json`,{
         method: 'PUT',
         body: JSON.stringify({amount: amountRef.current.value,
           item: itemRef.current.value,
           category: categoryRef.current.value,
-          id: Math.random()})
+          id: editItemId})
       });
       const response = await res.json();
       console.log(response);
@@ -97,12 +67,18 @@ const ExpensePage = props => {
         let errorMessage = response.error.message;
         throw new Error(errorMessage);
       }else{
-       setExpenses(pre => [...pre,
+      //  setExpenses(pre => [...pre,
+        // {amount: response.amount,
+        // item: response.item,
+        // category: response.category,
+        // id: editItemId}
+      // ])
+      dispatch(expenseActions.editExpenses(
         {amount: response.amount,
-        item: response.item,
-        category: response.category,
-        id: editItemId}
-      ])
+          item: response.item,
+          category: response.category,
+          id: editItemId}
+      ));
       amountRef.current.value="";
       itemRef.current.value="";
       categoryRef.current.value="";
@@ -114,6 +90,8 @@ const ExpensePage = props => {
     } catch (error) {
       alert(error.message);
       setLoader(false);
+      setIsEditable(false);
+      setEditItemId(null);
     }
   }
 
@@ -146,15 +124,16 @@ const ExpensePage = props => {
       })
     })
     .then(data => {
+      console.log(data);
       console.log(data.name);
-      setExpenses(pre => [...pre,
-        {amount: amountRef.current.value,
-        item: itemRef.current.value,
-        category: categoryRef.current.value,
-        id: data.name}
-      ])
-      setAmount(pre => Number(pre) + Number(amountRef.current.value))
-      console.log(amount);
+      dispatch(expenseActions.addExpenses([
+        {
+          amount: amountRef.current.value,
+          item: itemRef.current.value,
+          category: categoryRef.current.value,
+          id: data.name
+        }
+      ]))
       amountRef.current.value="";
       itemRef.current.value="";
       categoryRef.current.value="";
@@ -174,8 +153,6 @@ const ExpensePage = props => {
     amountRef.current.value = item.amount;
     itemRef.current.value = item.item;
     categoryRef.current.value = item.category;
-    // e.target.parentElement.parentElement.remove();
-    setExpenses(pre => pre.filter(ele => ele.id !== e.target.parentElement.parentElement.id))
     setIsEditable(true);
   }
 
@@ -191,9 +168,7 @@ const ExpensePage = props => {
         let errorMessage = response.error.message;
         throw new Error(errorMessage);
       }else{
-        const deleteAmount = expenses.find(ele => ele.id === itemId).amount;
-        setAmount(pre => Number(pre) - Number(deleteAmount));
-        setExpenses(pre => pre.filter(ele => ele.id !== itemId))
+        dispatch(expenseActions.deleteExpense(itemId));
         setLoader(false);
       }
     } catch (error) {
@@ -202,13 +177,79 @@ const ExpensePage = props => {
     }
   }
 
-  return <Container className="w-75">
-    <h1 className="text-center">Welcome to expense tracker</h1>
+  const premiumHandler = () => {
+    dispatch(themeActions.toggleTheme());
+  }
+  
+  const downloadCSVFile = (csv_data) => {
+  
+      // Create CSV file object and feed
+      // our csv_data into it
+      const CSVFile = new Blob([csv_data], {
+          type: "text/csv"
+      });
+  
+      // Create to temporary link to initiate
+      // download process
+      var temp_link = document.createElement('a');
+  
+      // Download csv file
+      temp_link.download = "expense.csv";
+      var url = window.URL.createObjectURL(CSVFile);
+      temp_link.href = url;
+  
+      // This link should not be displayed
+      temp_link.style.display = "none";
+      document.body.appendChild(temp_link);
+  
+      // Automatically click the link to
+      // trigger download
+      temp_link.click();
+      document.body.removeChild(temp_link);
+  }
+
+  const tableToCSV = () => {
+ 
+    // Variable to store the final csv data
+    var csv_data = [];
+
+    // Get each row data
+    var rows = document.getElementsByTagName('tr');
+    for (var i = 0; i < rows.length; i++) {
+
+        // Get each column data
+        var cols = rows[i].querySelectorAll('td,th');
+
+        // Stores each csv row data
+        var csvrow = [];
+        for (var j = 0; j < cols.length-1; j++) {
+
+            // Get the text data of each cell
+            // of a row and push it to csvrow
+            csvrow.push(cols[j].innerHTML);
+        }
+
+        // Combine each column value with comma
+        csv_data.push(csvrow.join(","));
+    }
+
+    // Combine each row data with new line character
+    csv_data = csv_data.join('\n');
+
+    // Call this function to download csv file 
+    downloadCSVFile(csv_data);
+
+}
+
+
+  return <section style={{backgroundColor: darkMode ? "black" : "white", padding: "1rem 5rem"}}>
+    <h1 className="text-center" style={{color: darkMode ? "white" : "black"}}>Welcome to expense tracker</h1>
     <div className="text-center">
       <Button onClick={clickHandler}>Verify Email</Button>
     </div>
-    {amount > 10000 && <div className="text-center">
-      <Button onClick={clickHandler}>Premium</Button>
+    {totalAmount>10000 && <div className="text-center" style={{margin: "0.5rem"}}>
+      <Button onClick={premiumHandler} className="mx-2">Activate Premium</Button>
+      <Button onClick={tableToCSV} className="mx-2">Download Expense</Button>
     </div>}
     <Form className="mt-3 bg-primary p-3" onSubmit={submitHandler}>
       <Row className="g-2">
@@ -243,12 +284,13 @@ const ExpensePage = props => {
       </Row>
     </Form>
 
-    <Table striped bordered hover variant="dark" className="mt-3">
+    <Table striped bordered hover variant={darkMode ? "light" : "dark"} className="mt-3">
       <thead>
         <tr>
           <th>Amount</th>
           <th>Item</th>
-          <th colSpan={2}>Category</th>
+          <th>Category</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -264,7 +306,7 @@ const ExpensePage = props => {
         ))}
       </tbody>
     </Table>
-  </Container>
+  </section>
 }
 
 export default ExpensePage;
